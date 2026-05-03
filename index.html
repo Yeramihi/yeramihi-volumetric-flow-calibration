@@ -1,0 +1,173 @@
+<!--
+    Yeramihi Volumetric Flow Calibration
+    Author: Yeramihi
+    Repository: https://github.com/Yeramihi/yeramihi-volumetric-flow-calibration
+    License: MIT
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yeramihi Volumetric Flow Calibration</title>
+
+    <link rel="stylesheet" href="css/style.css?v=15">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Calibration Setup</h1>
+
+        <form id="calibrationForm">
+            <div class="layout">
+
+                <div class="input-panel">
+                    <label for="plateX">Plate Size X (mm)</label>
+                    <input type="number" id="plateX" placeholder="e.g. 256" required>
+
+                    <label for="plateY">Plate Size Y (mm)</label>
+                    <input type="number" id="plateY" placeholder="e.g. 256" required>
+
+                    <label for="safeX">Safe Starting Position X (mm)</label>
+                    <input type="number" id="safeX" placeholder="e.g. 0" required>
+
+                    <label for="safeY">Safe Starting Position Y (mm)</label>
+                    <input type="number" id="safeY" placeholder="e.g. 0" required>
+
+                    <label for="nozzle">Nozzle Size (mm)</label>
+                    <select id="nozzle" required>
+                        <option value="0.2">0.2</option>
+                        <option value="0.4" selected>0.4</option>
+                        <option value="0.6">0.6</option>
+                        <option value="0.8">0.8</option>
+                    </select>
+
+                    <label for="filamentType">Filament Type</label>
+                    <select id="filamentType" required>
+                        <option value="" selected disabled>Select filament...</option>
+                        <option value="PLA">PLA</option>
+                        <option value="PETG">PETG</option>
+                        <option value="TPU">TPU</option>
+                    </select>
+
+                    <label for="temp">Filament Temperature (°C)</label>
+                    <input type="number" id="temp" placeholder="e.g. 220" required>
+
+                    <label for="bedTemp">Bed Temperature (°C)</label>
+                    <input type="number" id="bedTemp" placeholder="e.g. 60" required>
+
+                    <label for="fanSpeed">Fan Speed (%)</label>
+                    <input type="number" id="fanSpeed" min="0" max="100" placeholder="e.g. 0" value="0" required>
+
+                    <label for="calibrationType">Calibration Type</label>
+                    <select id="calibrationType" required>
+                        <option value="coarse" selected>Coarse</option>
+                        <option value="fine">Fine</option>
+                    </select>
+
+                    <label for="startingSpeed">Starting Speed (mm/s)</label>
+                    <input type="number" id="startingSpeed" placeholder="e.g. 50" value="50" required>
+
+                    <label for="zOffset">Z Offset Adjustment (mm)</label>
+                    <input type="number" id="zOffset" step="0.01" placeholder="e.g. 0.00" value="0">
+
+                    <label class="checkbox-row" for="printNumbers">
+                        <input type="checkbox" id="printNumbers">
+                        Print numbers
+                    </label>
+
+                    <button type="submit">Generate</button>
+
+                    <button type="button" id="clearButton">
+                        Clear inputs
+                    </button>
+
+                    <button type="button" id="downloadButton" class="hidden-button">
+                        Download G-code
+                    </button>
+
+                    <div class="gcode-output-wrapper">
+                        <label for="gcodeOutput">Generated G-code</label>
+                        <textarea id="gcodeOutput" readonly placeholder="Generated G-code will appear here..."></textarea>
+                    </div>
+                </div>
+
+                <div class="description-panel">
+                    <h2 class="warning-title">Warning</h2>
+
+                    <p>
+                        This tool generates raw G-code that directly controls your printer hardware.
+                        Incorrect parameters, unsafe values, or misuse may result in printer damage,
+                        print failures, material waste, or unsafe machine behaviour.
+                    </p>
+
+                    <p>
+                        You are solely responsible for reviewing and validating the generated G-code
+                        before running it on your machine. Always verify movements, clearances and
+                        extrusion behaviour in a preview tool where possible.
+                    </p>
+
+                    <p>
+                        This tool is provided “as is” with no guarantees of safety or correctness.
+                        The author accepts no responsibility or liability for any damage to printers,
+                        components, materials, or any other consequences resulting from its use.
+                    </p>
+
+                    <h2>Disclaimer & Caveats</h2>
+
+                    <p>
+                        This tool generates a simple volumetric-flow speed calibration G-code file.
+                        It helps identify the practical flow limit of a filament, nozzle and printer setup.
+                    </p>
+
+                    <p>
+                        This tool is intended for experienced users who understand G-code,
+                        printer movement, extrusion behaviour, and machine limits.
+                    </p>
+
+                    <h3>Assumptions</h3>
+
+                    <ul>
+                        <li>The filament is already loaded and ready to extrude.</li>
+                        <li>Bed mesh / bed levelling has already been completed.</li>
+                        <li>Your normal Z offset is already calibrated.</li>
+                        <li>The optional Z offset adjustment is only for small additional correction.</li>
+                        <li>The safe starting position represents the minimum reachable safe XY position.</li>
+                        <li>The generated pattern applies a 10mm margin from the safe starting position.</li>
+                    </ul>
+
+                    <h3>Z Offset Note</h3>
+
+                    <p>
+                        Some printer and plate combinations may apply additional Z behaviour in their
+                        normal start G-code. For example, a textured plate may require a small additional
+                        Z-plane lift, such as around 0.1mm, depending on the machine profile.
+                    </p>
+
+                    <p class="repo-note">
+                        Source code:
+                        <a href="https://github.com/Yeramihi/yeramihi-volumetric-flow-calibration" target="_blank" rel="noopener">
+                            GitHub Repository
+                        </a>
+                    </p>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <div id="cookieBanner" class="cookie-banner hidden">
+        <span>
+            This page uses cookies only to remember your input values. No tracking, no external services.
+        </span>
+
+        <div class="cookie-actions">
+            <button type="button" id="acceptCookies">Accept</button>
+            <button type="button" id="rejectCookies">Reject</button>
+        </div>
+    </div>
+
+    <script src="js/app.js?v=15"></script>
+</body>
+</html>
