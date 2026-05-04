@@ -172,6 +172,8 @@ function downloadGCodeFile(gcode, settings) {
 
 function calculateFinalSpeed(s, speedStep) {
     const margin = 10;
+    const numberSpace = s.printNumbers ? 25 : 0;
+
     const yStart = s.safeY + margin;
     const yEnd = s.plateY - margin;
 
@@ -263,7 +265,7 @@ function deleteSettingsCookie() {
 
 function generateGCode(s) {
     const margin = 10;
-    const numberSpace = s.printNumbers ? 20 : 0;
+    const numberSpace = s.printNumbers ? 25 : 0;
 
     const xStart = s.safeX + margin + numberSpace;
     const xEnd = s.plateX - margin;
@@ -293,6 +295,8 @@ function generateGCode(s) {
 
     const fanPercent = Math.max(0, Math.min(100, s.fanSpeed));
     const fanValue = Math.round((fanPercent / 100) * 255);
+
+    const labelFeedrate = Math.max(1, s.startingSpeed) * 60;
 
     let currentSpeed = s.startingSpeed;
 
@@ -339,11 +343,13 @@ function generateGCode(s) {
     gcode.push('; Safe start: X' + s.safeX + ' Y' + s.safeY);
     gcode.push('; Pattern start: X' + xStart.toFixed(3) + ' Y' + yStart.toFixed(3));
     gcode.push('; Printable width: ' + printableWidth.toFixed(3) + 'mm');
+    gcode.push('; Number label band: ' + (s.printNumbers ? '25mm enabled' : 'disabled'));
     gcode.push('; Z offset adjustment: ' + s.zOffset + 'mm');
     gcode.push(';');
     gcode.push('; Volumetric flow = speed * line area');
     gcode.push('; Main measurement segments are the long horizontal moves.');
     gcode.push('; Short 2mm sides are only used to close the rectangle and may not reach requested speed.');
+    gcode.push('; Labels show volumetric flow in mm3/s.');
     gcode.push('');
 
     gcode.push('G90 ; absolute positioning for setup');
@@ -367,9 +373,7 @@ function generateGCode(s) {
     gcode.push('G1 X' + xStart.toFixed(3) + ' Y' + yStart.toFixed(3) + ' F6000 ; move to first rectangle start');
     gcode.push('G1 Z' + printZ.toFixed(3) + ' F1200 ; lower to print height');
     gcode.push('');
-
-    gcode.push('G91 ; relative positioning for pattern');
-    gcode.push('M83 ; relative extrusion for pattern');
+    gcode.push('M83 ; relative extrusion for pattern and labels');
     gcode.push('');
 
     const rectangleYs = [];
@@ -379,9 +383,28 @@ function generateGCode(s) {
     }
 
     for (let i = 0; i < rectangleYs.length; i++) {
+        const y = rectangleYs[i];
         const feedrate = currentSpeed * 60;
         const flow = currentSpeed * lineArea;
+        const flowLabel = formatFlowLabel(flow, s.calibrationType);
 
+        if (s.printNumbers) {
+            gcode.push('; Label: ' + flowLabel + 'mm3/s');
+            drawNumberLabel(
+                gcode,
+                flowLabel,
+                xStart - 1,
+                y,
+                labelFeedrate,
+                lineArea,
+                filamentArea
+            );
+
+            gcode.push('G1 X' + xStart.toFixed(3) + ' Y' + y.toFixed(3) + ' F6000 ; move back to rectangle start');
+            gcode.push('');
+        }
+
+        gcode.push('G91 ; relative positioning for rectangle');
         gcode.push('; Rectangle speed: ' + formatNumber(currentSpeed) + 'mm/s');
         gcode.push('; Volumetric flow: ' + flow.toFixed(2) + 'mm3/s');
         gcode.push('; Rectangle geometry: ' + printableWidth.toFixed(3) + 'mm wide x ' + rectangleHeight.toFixed(3) + 'mm tall');
@@ -443,6 +466,106 @@ function addPrimeLine(gcode, s, layerHeight, lineWidth, filamentArea) {
     gcode.push('');
 }
 
+function drawNumberLabel(gcode, text, rightEdgeX, bottomY, feedrate, lineArea, filamentArea) {
+    const digitWidth = 4;
+    const digitHeight = 8;
+    const charGap = 0.8;
+    const dotSize = 1;
+
+    const labelWidth = getLabelWidth(text, digitWidth, charGap, dotSize);
+    let cursorX = rightEdgeX - labelWidth;
+
+    gcode.push('G90 ; absolute positioning for label');
+
+    for (const char of text) {
+        if (char === '.') {
+            drawDecimalPoint(gcode, cursorX, bottomY, dotSize, feedrate, lineArea, filamentArea);
+            cursorX += dotSize + charGap;
+        } else {
+            drawDigit(gcode, char, cursorX, bottomY, digitWidth, digitHeight, feedrate, lineArea, filamentArea);
+            cursorX += digitWidth + charGap;
+        }
+    }
+}
+
+function getLabelWidth(text, digitWidth, charGap, dotSize) {
+    let width = 0;
+
+    for (const char of text) {
+        width += char === '.' ? dotSize : digitWidth;
+        width += charGap;
+    }
+
+    return Math.max(0, width - charGap);
+}
+
+function drawDigit(gcode, digit, x, y, width, height, feedrate, lineArea, filamentArea) {
+    const digitSegments = {
+        '0': ['A', 'B', 'C', 'D', 'E', 'F'],
+        '1': ['B', 'C'],
+        '2': ['A', 'B', 'G', 'E', 'D'],
+        '3': ['A', 'B', 'G', 'C', 'D'],
+        '4': ['F', 'G', 'B', 'C'],
+        '5': ['A', 'F', 'G', 'C', 'D'],
+        '6': ['A', 'F', 'G', 'E', 'C', 'D'],
+        '7': ['A', 'B', 'C'],
+        '8': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+        '9': ['A', 'B', 'C', 'D', 'F', 'G']
+    };
+
+    const segmentPoints = {
+        A: [[0, height], [width, height]],
+        B: [[width, height], [width, height / 2]],
+        C: [[width, height / 2], [width, 0]],
+        D: [[0, 0], [width, 0]],
+        E: [[0, height / 2], [0, 0]],
+        F: [[0, height], [0, height / 2]],
+        G: [[0, height / 2], [width, height / 2]]
+    };
+
+    if (!digitSegments[digit]) return;
+
+    for (const segment of digitSegments[digit]) {
+        const points = segmentPoints[segment];
+        const start = points[0];
+        const end = points[1];
+
+        drawAbsoluteExtrudeLine(
+            gcode,
+            x + start[0],
+            y + start[1],
+            x + end[0],
+            y + end[1],
+            feedrate,
+            lineArea,
+            filamentArea,
+            'digit ' + digit + ' segment ' + segment
+        );
+    }
+}
+
+function drawDecimalPoint(gcode, x, y, size, feedrate, lineArea, filamentArea) {
+    drawAbsoluteExtrudeLine(gcode, x, y, x + size, y, feedrate, lineArea, filamentArea, 'decimal point bottom');
+    drawAbsoluteExtrudeLine(gcode, x + size, y, x + size, y + size, feedrate, lineArea, filamentArea, 'decimal point right');
+    drawAbsoluteExtrudeLine(gcode, x + size, y + size, x, y + size, feedrate, lineArea, filamentArea, 'decimal point top');
+    drawAbsoluteExtrudeLine(gcode, x, y + size, x, y, feedrate, lineArea, filamentArea, 'decimal point left');
+}
+
+function drawAbsoluteExtrudeLine(gcode, x1, y1, x2, y2, feedrate, lineArea, filamentArea, comment) {
+    const distance = Math.hypot(x2 - x1, y2 - y1);
+    const volume = distance * lineArea;
+    const extrusion = volume / filamentArea;
+
+    gcode.push('G1 X' + x1.toFixed(3) + ' Y' + y1.toFixed(3) + ' F6000 ; move to ' + comment);
+    gcode.push(
+        'G1 X' + x2.toFixed(3) +
+        ' Y' + y2.toFixed(3) +
+        ' E' + extrusion.toFixed(5) +
+        ' F' + feedrate.toFixed(0) +
+        ' ; ' + comment
+    );
+}
+
 function addRelativeExtrudeMove(gcode, x, y, feedrate, lineArea, filamentArea, comment) {
     const distance = Math.hypot(x, y);
     const volume = distance * lineArea;
@@ -489,4 +612,12 @@ function getNozzleGeometry(nozzle) {
 
 function formatNumber(value) {
     return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '');
+}
+
+function formatFlowLabel(value, calibrationType) {
+    if (calibrationType === 'fine') {
+        return value.toFixed(2).replace(/\.?0+$/, '');
+    }
+
+    return formatNumber(value);
 }
