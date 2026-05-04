@@ -238,3 +238,6 @@ button:hover {
         flex: 1;
     }
 }
+.cookie-banner.hidden {
+    display: none;
+}
