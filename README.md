@@ -76,7 +76,7 @@ The tool is provided *as-is* with no guarantees.
 
 Use the hosted version:
 
-👉 https://yourusername.github.io/yeramihi-volumetric-flow-calibration/
+👉 https://tools.yeramihi.com/
 
 Or run locally:
 - download repo
