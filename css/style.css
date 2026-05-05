@@ -5,6 +5,12 @@
     License: MIT
 */
 
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
     font-family: Arial, sans-serif;
     background: #0f172a;
@@ -17,7 +23,7 @@ body {
 .container {
     background: #1e293b;
     padding: 32px;
-    border-radius: 12px;
+    border-radius: 8px;
     width: 100%;
     max-width: 980px;
     margin: 32px auto;
@@ -29,37 +35,50 @@ h1 {
     margin-bottom: 24px;
 }
 
-.layout {
-    display: grid;
-    grid-template-columns: 1fr 1px 1fr;
-    gap: 32px;
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #475569;
 }
 
-.layout::before {
-    content: "";
-    grid-column: 2;
-    grid-row: 1;
-    background: #475569;
-    width: 1px;
+.tab-button {
+    margin: 0;
+    width: auto;
+    padding: 10px 14px;
+    border-radius: 6px 6px 0 0;
+    background: transparent;
+    color: #cbd5e1;
+    border: 1px solid transparent;
+    border-bottom: none;
 }
 
-.input-panel {
-    grid-column: 1;
+.tab-button:hover,
+.tab-button.active {
+    background: #334155;
+    color: #fff;
 }
 
-.description-panel {
-    grid-column: 3;
+.tab-button.active {
+    border-color: #475569;
+}
+
+.tab-panel {
+    width: 100%;
+}
+
+.content-panel {
     font-size: 15px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: #cbd5e1;
 }
 
-.description-panel h2,
-.description-panel h3 {
+.content-panel h2,
+.content-panel h3 {
     color: #e5e7eb;
 }
 
-.description-panel ul {
+.content-panel ul {
     padding-left: 22px;
 }
 
@@ -67,8 +86,15 @@ h1 {
     color: #ff4d4f !important;
 }
 
-.repo-note a {
+.repo-note a,
+.content-panel a,
+.risk-confirmation a {
     color: #38bdf8;
+}
+
+.input-panel {
+    max-width: 680px;
+    margin: 0 auto;
 }
 
 .input-panel label {
@@ -87,7 +113,78 @@ h1 {
     background: #334155;
     color: #fff;
     font-size: 14px;
-    box-sizing: border-box;
+}
+
+.field-help {
+    margin: 6px 0 0;
+    color: #cbd5e1;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.field-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.field-group label {
+    margin-top: 14px;
+}
+
+.estimate-panel {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    background: #0f172a;
+}
+
+.estimate-panel h3 {
+    margin: 0 0 10px;
+}
+
+.estimate-status {
+    margin: 0;
+    color: #fbbf24;
+}
+
+.estimate-values,
+.estimate-costs {
+    display: grid;
+    gap: 10px;
+}
+
+.estimate-values {
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 12px;
+}
+
+.estimate-values div,
+.estimate-costs div {
+    padding: 10px;
+    border-radius: 6px;
+    background: #1e293b;
+}
+
+.estimate-values span,
+.estimate-costs span {
+    display: block;
+    color: #cbd5e1;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.estimate-values strong,
+.estimate-costs strong {
+    color: #fff;
+}
+
+.estimate-note {
+    margin: 12px 0 0;
+    color: #94a3b8;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 button {
@@ -117,7 +214,7 @@ button:hover {
 
 .checkbox-row {
     display: flex !important;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     margin-top: 18px;
     cursor: pointer;
@@ -128,8 +225,50 @@ button:hover {
 .checkbox-row input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    margin: 0;
+    margin: 1px 0 0;
     padding: 0;
+    flex: 0 0 auto;
+}
+
+.risk-confirmation label {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.output-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.output-actions button {
+    margin-top: 18px;
+}
+
+.copy-control {
+    position: relative;
+}
+
+.copy-tooltip {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: #020617;
+    color: #e5e7eb;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 2;
+}
+
+.copy-tooltip.visible {
+    opacity: 1;
 }
 
 .gcode-output-wrapper {
@@ -154,7 +293,6 @@ button:hover {
     font-family: Consolas, Monaco, monospace;
     font-size: 13px;
     line-height: 1.4;
-    box-sizing: border-box;
 }
 
 .hidden-button,
@@ -175,7 +313,7 @@ button:hover {
     color: #e5e7eb;
     padding: 14px 16px;
     border: 1px solid #334155;
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     display: flex;
     align-items: center;
@@ -205,24 +343,24 @@ button:hover {
     background: #475569;
 }
 
+.cookie-banner.hidden {
+    display: none;
+}
+
 @media (max-width: 850px) {
-    .layout {
+    .container {
+        padding: 20px;
+        margin: 16px auto;
+    }
+
+    .tabs {
+        overflow-x: auto;
+    }
+
+    .field-pair,
+    .estimate-values,
+    .output-actions {
         grid-template-columns: 1fr;
-    }
-
-    .layout::before {
-        display: none;
-    }
-
-    .input-panel,
-    .description-panel {
-        grid-column: 1;
-    }
-
-    .description-panel {
-        border-top: 1px solid #475569;
-        margin-top: 24px;
-        padding-top: 24px;
     }
 
     .cookie-banner {
@@ -237,7 +375,4 @@ button:hover {
     .cookie-actions button {
         flex: 1;
     }
-}
-.cookie-banner.hidden {
-    display: none;
 }
